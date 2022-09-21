@@ -1,15 +1,10 @@
 package sqbot
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"os"
-
 	"github.com/RicheyJang/PaimengBot/manager"
 	"github.com/RicheyJang/PaimengBot/utils"
+
 	zero "github.com/wdvxdr1123/ZeroBot"
-	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
 var info = manager.PluginInfo{ // [1] 声明插件信息结构变量
