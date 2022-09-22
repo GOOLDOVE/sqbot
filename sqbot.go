@@ -1,10 +1,14 @@
 package sqbot
 
 import (
+	"encoding/json"
+	"log"
+	"os"
+
 	"github.com/RicheyJang/PaimengBot/manager"
-	"github.com/RicheyJang/PaimengBot/utils"
 
 	zero "github.com/wdvxdr1123/ZeroBot"
+	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
 var info = manager.PluginInfo{ // [1] 声明插件信息结构变量
@@ -21,52 +25,50 @@ func init() {
 	if proxy == nil {                    // 若初始化失败，请return，失败原因会在日志中打印
 		return
 	}
-	proxy.OnCommands([]string{"机器人", "sqbot"}).SetBlock(true).SecondPriority().Handle(sqbot) // [4] 注册事件处理函数
-	proxy.AddConfig("times", 2)                                                              // proxy提供的统一配置项管理功能，此函数新增一个配置项times，默认值为2
+	proxy.OnCommands([]string{"sqbot", "服务器多少人", "现在服务器多少人了"}).SetBlock(true).SecondPriority().Handle(sqbot) // [4] 注册事件处理函数
+	proxy.AddConfig("times", 2)                                                                              // proxy提供的统一配置项管理功能，此函数新增一个配置项times，默认值为2
 }
+
+var sendMsg message.Message
 
 // EchoHandler [5] Handler实现
 func sqbot(ctx *zero.Ctx) {
-	// 打开json文件
-	jsonFile, err := os.Open("info.json")
+	type Info struct {
+		All      int64  `json:"max_players"`
+		NOW      int64  `json:"currentPlayers"`
+		VISION   string `json:"version"`
+		MAP      string `json:"map"`
+		T1       string `json:"squad_teamOne"`
+		T2       string `json:"squad_teamTwo"`
+		TIME     string `json:"updatedAt"`
+		GAMEMODE string `json:"gameMode"`
+		NAME     string `json:"name"`
+		//time   string `json:"updatedAt"`
+		//time   string `json:"updatedAt"`
+	}
+	jsonPath := "C:\\info.json"
 
-	str := utils.GetArgs(ctx)           // 派蒙Bot提供的工具函数，用于获取此次事件的消息参数内容
-	tm := proxy.GetConfigInt64("times") // proxy提供的统一配置项管理功能，此函数用于获取int64类型的times配置项值
-
-	// 最好要处理以下错误
+	fmt, err := os.Open("C:\\RCON\\app.js")
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 
-	// 要记得关闭
+	jsonFile, err := os.Open(jsonPath)
+	if err != nil {
+		log.Printf("open json file %v error [ %v ]", jsonPath, err)
+		return
+	}
 	defer jsonFile.Close()
 
-	byteValue, _ := ioutil.ReadAll(jsonFile)
+	_ = fmt
 
-	var result map[string]interface{}
-	json.Unmarshal([]byte(byteValue), &result)
-	// 发送
-	for i := int64(0); i < tm; i++ {
-		ctx.Send(message.Text("服务器信息为：\n").String() + message.At(ctx.Event.UserID).String() + sendMsg.String())
+	var conf Info
+	decoder := json.NewDecoder(jsonFile)
+	err = decoder.Decode(&conf)
+	if err != nil {
+		log.Printf("decode error [ %v ]", err)
+		return
+	} else {
+		ctx.Send(message.At(ctx.Event.UserID).String() + message.Text("服务器信息为：\n", "服务器名称：", conf.NAME, "\n", "当前人数：", conf.NOW, "/", conf.All, "\n", "服务器模式：", conf.GAMEMODE, "，", conf.T1, "vs", conf.T2, "\n", "服务器版本：", conf.VISION, "\n", "服务器地图：", conf.MAP).String() + sendMsg.String())
 	}
 }
-
-//var proxy *manager.PluginProxy
-//var info = manager.PluginInfo{
-//	Name: "服务器状态查询",
-//	Usage: `
-//查询服务器信息
-//	服务器信息 主服
-//`,
-//	Classify: "实用工具",
-//}
-
-//技术优先以下封存
-//func init() {
-//	proxy = manager.RegisterPlugin(info)
-//	if proxy == nil {
-//		return
-//	}
-//	proxy.OnCommands([]string{"服务器", "服务器查询"}, zero.OnlyToMe).SetBlock(true).ThirdPriority().Handle(covid19Handler)
-//	proxy.OnRegex(`^(\S{1,10})服务器信息$`, zero.OnlyToMe).SetBlock(true).SetPriority(3).Handle(covid19Handler)
-//}
